@@ -1,0 +1,50 @@
+GET http://localhost:5000/HealthCheck/GetStatus
+
+###
+
+POST http://localhost:5000/HealthCheck
+Content-Type: application/json
+
+{
+    "patientid": 5,
+    "date": "2023-09-01T00:41:49.9602636+00:00",
+    "healthstatus": "I feel healthy",
+    "symptoms": [
+        "None"
+    ]
+}
+
+### 
+
+POST http://localhost:5000/HealthCheck
+Content-Type: application/json
+
+{
+    "patientid": 5,
+    "date": "2021-09-04T00:41:49.9602636+00:00",
+    "healthstatus": "I feel unwell",
+    "symptoms": [
+        "Hair loss",
+        "Internal bleeding",
+        "Temporary blindness"
+    ]
+}
+
+###
+
+POST http://localhost:5000/HealthCheck
+Content-Type: application/json
+
+{
+    "patientid": 5,
+    "date": "2021-09-08T00:41:49.9602636+00:00",
+    "healthstatus": "I feel healthy",
+    "symptoms": [
+        "Hair regrowth",
+        "Ennui"
+    ]
+}
+
+###
+
+GET http://localhost:5000/HealthCheck

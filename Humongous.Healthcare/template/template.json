@@ -1,0 +1,109 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "uniqueSuffix": {
+        "type": "string",
+        "metadata": {
+          "description": "Suffix added to all resource names to make them unique."
+        }
+      }
+    },
+    "variables": {
+      "location": "[resourceGroup().location]",
+      "acrName": "[replace(concat(resourceGroup().name, '-acr-', parameters('uniqueSuffix')),'-','')]",
+      "clusterName": "[concat(resourceGroup().name, '-aks-', parameters('uniqueSuffix'))]",
+      "cosmosDbAccountName": "[concat(resourceGroup().name, '-cosmosdb-', parameters('uniqueSuffix'))]"
+    },
+    "resources": [
+      {
+        "type": "Microsoft.ContainerRegistry/registries/providers/roleAssignments",
+        "apiVersion": "2018-09-01-preview",
+        "name": "[concat(variables('acrName'), '/Microsoft.Authorization/', guid(variables('acrName')))]",
+        "dependsOn": [
+          "[concat('Microsoft.ContainerService/managedClusters/', variables('clusterName'))]"
+        ],
+        "properties": {
+          "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]",
+          "principalType": "ServicePrincipal",
+          "principalId": "[reference(variables('clusterName'), '2022-06-01').identityProfile.kubeletidentity.objectId]",
+          "scope": "[resourceId('Microsoft.ContainerRegistry/registries/', variables('acrName'))]"
+        }
+      },
+      {
+        "type": "Microsoft.ContainerService/managedClusters",
+        "apiVersion": "2024-03-02-preview",
+        "name": "[variables('clusterName')]",
+        "location": "[variables('location')]",
+        "identity": {
+          "type": "SystemAssigned"
+        },
+        "properties": {
+          "dnsPrefix": "[parameters('uniqueSuffix')]",
+          "agentPoolProfiles": [
+            {
+              "name": "agentpool",
+              "osDiskSizeGB": 1023,
+              "count": 3,
+              "vmSize": "Standard_D2s_v3",
+              "osType": "Linux",
+              "mode": "System"
+            }
+          ]
+        }
+      },
+      {
+        "type": "Microsoft.ContainerRegistry/registries",
+        "apiVersion": "2021-09-01",
+        "name": "[variables('acrName')]",
+        "location": "[variables('location')]",
+        "tags": {
+          "displayName": "Container Registry",
+          "container.registry": "[variables('acrName')]"
+        },
+        "sku": {
+          "name": "Basic"
+        },
+        "properties": {
+          "adminUserEnabled": true
+        }
+      },
+      {
+        "apiVersion": "2021-07-01-preview",
+        "kind": "GlobalDocumentDB",
+        "type": "Microsoft.DocumentDb/databaseAccounts",
+        "name": "[variables('cosmosDbAccountName')]",
+        "location": "[variables('location')]",
+        "properties": {
+          "databaseAccountOfferType": "Standard",
+          "locations": [
+            {
+              "id": "[concat(variables('cosmosDbAccountName'), '-', variables('location'))]",
+              "failoverPriority": 0,
+              "locationName": "[variables('location')]"
+            }
+          ],
+          "backupPolicy": {
+            "type": "Periodic",
+            "periodicModeProperties": {
+              "backupIntervalInMinutes": 240,
+              "backupRetentionIntervalInHours": 8,
+              "backupStorageRedundancy": "Geo"
+            }
+          },
+          "isVirtualNetworkFilterEnabled": false,
+          "virtualNetworkRules": [],
+          "ipRules": [],
+          "dependsOn": [],
+          "enableMultipleWriteLocations": false,
+          "capabilities": [],
+          "enableFreeTier": false
+        },
+        "tags": {
+          "defaultExperience": "Core (SQL)",
+          "hidden-cosmos-mmspecial": ""
+        }
+      }
+    ],
+    "outputs": {}
+  }
